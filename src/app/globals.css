@@ -128,37 +128,9 @@
 
 @layer components {
   .prose {
-    @apply text-xl leading-relaxed;
+    @apply font-serif;
   }
-  .prose p {
-    @apply mb-5 text-xl leading-relaxed;
-  }
-  .prose h1 {
-    @apply text-3xl sm:text-4xl font-medium tracking-tight mb-4;
-  }
-  .prose h2 {
-    @apply text-2xl font-medium italic mt-12 mb-6;
-  }
-  .prose h3 {
-    @apply text-xl font-semibold mt-8 mb-4;
-  }
-  .prose blockquote {
-    @apply border-l-2 border-zinc-200 dark:border-zinc-800 pl-6 italic text-zinc-600 dark:text-zinc-400 my-6;
-  }
-  .prose blockquote p {
-    @apply mb-2 text-xl;
-  }
-  .prose ul,
-  .prose ol {
-    @apply my-5 pl-6 text-xl;
-  }
-  .prose li {
-    @apply my-2;
-  }
-  .prose strong {
-    @apply font-semibold text-zinc-950 dark:text-white;
-  }
-  .prose a {
-    @apply text-zinc-900 dark:text-zinc-100 underline transition-colors hover:text-zinc-700 dark:hover:text-zinc-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-100;
+  .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+    @apply font-serif text-pretty;
   }
 }
