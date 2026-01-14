@@ -1,4 +1,15 @@
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import danKoeAvatar from "@/assets/dan-koe-avatar.png";
+
 # How to fix your entire life in 1 day
+
+<div className="flex items-center gap-3 my-6">
+  <Avatar className="size-10 border border-border">
+    <AvatarImage src={danKoeAvatar.src} alt="Dan Koe" />
+    <AvatarFallback>DK</AvatarFallback>
+  </Avatar>
+  <span className="text-lg font-medium">DAN KOE</span>
+</div>
 
 If you're anything like me, you think new years resolutions are stupid.
 
