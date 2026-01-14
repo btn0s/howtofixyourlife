@@ -5,8 +5,6 @@ import { motion } from "motion/react";
 import {
   Play,
   Pause,
-  SkipBack,
-  SkipForward,
   X,
 } from "lucide-react";
 import { useTranscriptSync } from "./transcript-sync-provider";
@@ -18,10 +16,10 @@ const BOUNCE_VARIANTS = {
 };
 
 function formatTime(seconds: number): string {
-  if (!isFinite(seconds)) return "0:00";
+  if (!isFinite(seconds)) return "00:00";
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 }
 
 function WaveformIndicator({ isPlaying }: { isPlaying: boolean }) {
@@ -174,58 +172,14 @@ export default function DynamicIslandLetterPlayer() {
     }
   };
 
-  const handleSkip = (seconds: number) => {
-    if (!audioRef.current) return;
-    const newTime = Math.max(
-      0,
-      Math.min(audioRef.current.currentTime + seconds, duration)
-    );
-    audioRef.current.currentTime = newTime;
-  };
-
-  const [isDragging, setIsDragging] = useState(false);
-
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!audioRef.current || !duration || isDragging) return;
+    if (!audioRef.current || !duration) return;
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
     const newTime = Math.max(0, Math.min(percent * duration, duration));
     audioRef.current.currentTime = newTime;
   };
-
-  const handleHandleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  useEffect(() => {
-    if (!isDragging) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!audioRef.current || !duration) return;
-      const scrubBar = document.querySelector('[data-scrub-bar]') as HTMLElement;
-      if (!scrubBar) return;
-      const rect = scrubBar.getBoundingClientRect();
-      const percent = Math.max(0, Math.min((e.clientX - rect.left) / rect.width, 1));
-      const newTime = percent * duration;
-      audioRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging, duration]);
 
   const idleContent = (
     <div className="flex items-center gap-2.5 px-5 py-2.5">
@@ -237,59 +191,32 @@ export default function DynamicIslandLetterPlayer() {
   );
 
   const playerContent = (
-    <div className="flex items-center gap-3 px-4 py-2 w-full max-w-md">
-      <div className="flex items-center gap-1 shrink-0">
-        <button
-          onClick={() => handleSkip(-10)}
-          disabled={!duration}
-          className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2),0_1px_2px_0_rgba(0,0,0,0.3)] active:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.2)]"
-        >
-          <SkipBack className="size-4 fill-white text-white" />
-        </button>
-        <button
-          onClick={handlePlayPause}
-          disabled={isLoading}
-          className="h-9 w-9 rounded-full bg-white/15 hover:bg-white/25 active:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center border border-white/30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.3),0_2px_4px_0_rgba(0,0,0,0.4)] active:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.3)]"
-        >
-          {isLoading ? (
-            <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : isPlaying ? (
-            <Pause className="size-4 fill-white text-white" />
-          ) : (
-            <Play className="size-4 fill-white text-white" />
-          )}
-        </button>
-        <button
-          onClick={() => handleSkip(10)}
-          disabled={!duration}
-          className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2),0_1px_2px_0_rgba(0,0,0,0.3)] active:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.2)]"
-        >
-          <SkipForward className="size-4 fill-white text-white" />
-        </button>
-      </div>
+    <div className="flex items-center gap-2 px-4 py-2 w-full max-w-md">
+      <button
+        onClick={handlePlayPause}
+        disabled={isLoading}
+        className="h-9 w-9 shrink-0 rounded-full bg-white/15 hover:bg-white/25 active:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center border border-white/30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.3),0_2px_4px_0_rgba(0,0,0,0.4)] active:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.3)]"
+      >
+        {isLoading ? (
+          <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        ) : isPlaying ? (
+          <Pause className="size-4 fill-white text-white" />
+        ) : (
+          <Play className="size-4 fill-white text-white" />
+        )}
+      </button>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
         <span className="text-xs text-white/90 shrink-0 font-mono w-10 text-right font-medium">
           {formatTime(currentTime)}
         </span>
         <div
-          data-scrub-bar
-          className="relative w-32 h-1.5 bg-white/10 rounded-full overflow-visible border border-white/10 shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.3)] cursor-pointer group"
+          className="relative w-16 h-1.5 bg-white/10 rounded-full overflow-hidden border border-white/10 shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.3)] cursor-pointer group"
           onClick={handleSeek}
         >
           <div
             className="absolute top-0 left-0 h-full bg-white rounded-full shadow-[0_0_4px_0_rgba(255,255,255,0.5)] transition-all group-hover:shadow-[0_0_6px_0_rgba(255,255,255,0.7)]"
             style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-          />
-          <div
-            className="absolute w-3 h-3 bg-white rounded-full shadow-[0_0_4px_0_rgba(255,255,255,0.5)] transition-all group-hover:w-4 group-hover:h-4 group-hover:shadow-[0_0_6px_0_rgba(255,255,255,0.7)] cursor-grab active:cursor-grabbing z-10"
-            style={{ 
-              left: `calc(${duration ? (currentTime / duration) * 100 : 0}% - 6px)`,
-              top: '50%',
-              transform: 'translateY(-50%)'
-            }}
-            onMouseDown={handleHandleMouseDown}
-            onClick={(e) => e.stopPropagation()}
           />
         </div>
         <span className="text-xs text-white/90 shrink-0 font-mono w-10 font-medium">

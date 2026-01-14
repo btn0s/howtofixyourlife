@@ -71,8 +71,10 @@ function renderTokens(
 
   for (const token of tokens) {
     if (token.type === "word") {
-      const isCurrent = isPlaying && currentWordIndex === wordIndex
-      const isUnspoken = isPlaying && currentWordIndex < wordIndex
+      // Only highlight if we have a valid currentWordIndex (not -1)
+      // When currentWordIndex is -1 (in a gap), don't mark words as unspoken
+      const isCurrent = isPlaying && currentWordIndex >= 0 && currentWordIndex === wordIndex
+      const isUnspoken = isPlaying && currentWordIndex >= 0 && currentWordIndex < wordIndex
 
       elements.push(
         <WordSpan

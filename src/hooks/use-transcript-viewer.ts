@@ -192,18 +192,39 @@ export function useTranscriptViewer({
 
   const currentWord = useMemo(() => {
     if (isScrubbing) return null
+    if (words.length === 0) return null
 
+    // Find the word that contains currentTime
     for (const word of words) {
       if (currentTime >= word.startTime && currentTime <= word.endTime) {
         return word
       }
     }
 
-    if (words.length > 0 && currentTime > words[words.length - 1].endTime) {
+    // If past all words, return last word
+    if (currentTime > words[words.length - 1].endTime) {
       return words[words.length - 1]
     }
 
-    return null
+    // If before first word, return null
+    if (currentTime < words[0].startTime) {
+      return null
+    }
+
+    // If in a gap between words, find the most recent word that ended
+    // This prevents flickering when audio is between words by keeping
+    // the last word highlighted during short gaps
+    let lastWord = null
+    
+    for (const word of words) {
+      if (word.endTime <= currentTime) {
+        lastWord = word
+      } else {
+        break
+      }
+    }
+
+    return lastWord
   }, [currentTime, words, isScrubbing])
 
   const currentWordIndex = useMemo(() => {
