@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import {
   Play,
   Pause,
@@ -180,74 +178,78 @@ export default function DynamicIslandLetterPlayer() {
   };
 
   const idleContent = (
-    <div className="flex items-center gap-2 px-4 py-2">
-      <span className="text-sm font-medium">Listen to this letter</span>
-      <Play className="size-4" />
+    <div className="flex items-center gap-2.5 px-5 py-2.5">
+      <span className="text-sm font-medium text-white tracking-tight">Listen to this letter</span>
+      <div className="flex items-center justify-center size-7 rounded-full bg-white/15 border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.3),0_1px_2px_0_rgba(0,0,0,0.3)]">
+        <Play className="size-3.5 fill-white text-white ml-0.5" />
+      </div>
     </div>
   );
 
   const playerContent = (
     <div className="flex items-center gap-3 px-4 py-2 w-full max-w-md">
       <div className="flex items-center gap-1 shrink-0">
-        <Button
-          variant="ghost"
-          size="icon-sm"
+        <button
           onClick={() => handleSkip(-10)}
           disabled={!duration}
-          className="h-7 w-7"
+          className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2),0_1px_2px_0_rgba(0,0,0,0.3)] active:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.2)]"
         >
-          <SkipBack className="size-3.5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
+          <SkipBack className="size-4 fill-white text-white" />
+        </button>
+        <button
           onClick={handlePlayPause}
           disabled={isLoading}
-          className="h-7 w-7"
+          className="h-9 w-9 rounded-full bg-white/15 hover:bg-white/25 active:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center border border-white/30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.3),0_2px_4px_0_rgba(0,0,0,0.4)] active:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.3)]"
         >
           {isLoading ? (
-            <div className="size-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : isPlaying ? (
-            <Pause className="size-3.5" />
+            <Pause className="size-4 fill-white text-white" />
           ) : (
-            <Play className="size-3.5" />
+            <Play className="size-4 fill-white text-white" />
           )}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
+        </button>
+        <button
           onClick={() => handleSkip(10)}
           disabled={!duration}
-          className="h-7 w-7"
+          className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2),0_1px_2px_0_rgba(0,0,0,0.3)] active:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.2)]"
         >
-          <SkipForward className="size-3.5" />
-        </Button>
+          <SkipForward className="size-4 fill-white text-white" />
+        </button>
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        <span className="text-xs text-muted-foreground shrink-0 font-mono w-10 text-right">
+        <span className="text-xs text-white/90 shrink-0 font-mono w-10 text-right font-medium">
           {formatTime(currentTime)}
         </span>
-        <Slider
-          value={[currentTime]}
-          max={duration || 100}
-          step={0.1}
-          onValueChange={handleSeek}
-          className="w-32"
-        />
-        <span className="text-xs text-muted-foreground shrink-0 font-mono w-10">
+        <div
+          className="relative w-32 h-1.5 bg-white/10 rounded-full overflow-hidden border border-white/10 shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.3)] cursor-pointer group"
+          onClick={(e) => {
+            if (!duration) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            const newTime = Math.max(0, Math.min(percent * duration, duration));
+            if (audioRef.current) {
+              audioRef.current.currentTime = newTime;
+            }
+          }}
+        >
+          <div
+            className="absolute top-0 left-0 h-full bg-white rounded-full shadow-[0_0_4px_0_rgba(255,255,255,0.5)] transition-all group-hover:shadow-[0_0_6px_0_rgba(255,255,255,0.7)]"
+            style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+          />
+        </div>
+        <span className="text-xs text-white/90 shrink-0 font-mono w-10 font-medium">
           {formatTime(duration)}
         </span>
       </div>
 
-      <Button
-        variant="ghost"
-        size="icon-sm"
+      <button
         onClick={handleMinimize}
-        className="h-7 w-7 shrink-0"
+        className="h-8 w-8 shrink-0 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/15 transition-all duration-200 flex items-center justify-center border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2),0_1px_2px_0_rgba(0,0,0,0.3)] active:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.2)]"
       >
-        <X className="size-3.5" />
-      </Button>
+        <X className="size-4 fill-white text-white" />
+      </button>
     </div>
   );
 
@@ -271,7 +273,7 @@ export default function DynamicIslandLetterPlayer() {
           damping: 30,
         }}
         style={{ borderRadius: 32 }}
-        className="pointer-events-auto mx-auto w-fit min-w-[100px] overflow-hidden rounded-full bg-black text-white shadow-lg"
+        className="pointer-events-auto mx-auto w-fit min-w-[100px] overflow-hidden rounded-full bg-zinc-900 text-white shadow-[0_4px_12px_0_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.1)] border border-white/10"
         onClick={view === "idle" ? handleIdleClick : undefined}
         role={view === "idle" ? "button" : undefined}
         tabIndex={view === "idle" ? 0 : undefined}

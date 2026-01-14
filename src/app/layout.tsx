@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
+import { PaperWrapper } from "@/components/paper-wrapper";
+import DynamicIslandLetterPlayer from "@/components/dynamic-island-letter-player";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,11 +35,16 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${abcMarist.variable} antialiased bg-[#fffdfa] text-zinc-900 selection:bg-zinc-200 dark:bg-zinc-950 dark:text-zinc-100 dark:selection:bg-zinc-800`}
+        className={`${geistSans.variable} ${geistMono.variable} ${abcMarist.variable} antialiased bg-[#e8e6e1] text-zinc-900 selection:bg-zinc-200 dark:bg-zinc-950 dark:text-zinc-100 dark:selection:bg-zinc-800`}
       >
-        <article className="min-h-screen prose prose-neutral px-8 py-16 sm:py-20 mx-auto">
-          {children}
-        </article>
+        <div className="min-h-screen py-16 sm:py-20 px-4 sm:px-8 max-w-3xl mx-auto">
+          <PaperWrapper className="shadow-xl">
+            <article className="prose prose-neutral max-w-none prose-lg">
+              {children}
+            </article>
+          </PaperWrapper>
+        </div>
+        <DynamicIslandLetterPlayer />
       </body>
     </html>
   );
