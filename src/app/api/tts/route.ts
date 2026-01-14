@@ -25,14 +25,17 @@ export async function POST(request: NextRequest) {
 
     const audio = await elevenlabs.textToSpeech.convert(VOICE_ID, {
       text,
-      model_id: "eleven_turbo_v2_5",
-      output_format: "mp3_44100_128",
+      modelId: "eleven_turbo_v2_5",
+      outputFormat: "mp3_44100_128",
     });
 
     // Convert the readable stream to a buffer
     const chunks: Uint8Array[] = [];
-    for await (const chunk of audio) {
-      chunks.push(chunk);
+    const reader = audio.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) chunks.push(value);
     }
     const buffer = Buffer.concat(chunks);
 
