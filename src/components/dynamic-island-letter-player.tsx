@@ -273,7 +273,7 @@ export default function DynamicIslandLetterPlayer() {
           damping: 30,
         }}
         style={{ borderRadius: 32 }}
-        className="pointer-events-auto mx-auto w-fit min-w-[100px] overflow-hidden rounded-full bg-zinc-900 text-white shadow-[0_4px_12px_0_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.1)] border border-white/10"
+        className="pointer-events-auto mx-auto w-fit min-w-[100px] overflow-hidden rounded-full bg-zinc-900 text-white shadow-lg border border-white/10"
         onClick={view === "idle" ? handleIdleClick : undefined}
         role={view === "idle" ? "button" : undefined}
         tabIndex={view === "idle" ? 0 : undefined}
