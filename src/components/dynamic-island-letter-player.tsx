@@ -13,9 +13,9 @@ import {
 } from "lucide-react";
 
 const BOUNCE_VARIANTS = {
-  idle: 0.5,
-  "idle-player": 0.5,
-  "player-idle": 0.5,
+  idle: 0.25,
+  "idle-player": 0.25,
+  "player-idle": 0.25,
 };
 
 function formatTime(seconds: number): string {
@@ -266,7 +266,9 @@ export default function DynamicIslandLetterPlayer() {
         layout
         transition={{
           type: "spring",
-          bounce: BOUNCE_VARIANTS[variantKey] ?? 0.5,
+          bounce: BOUNCE_VARIANTS[variantKey] ?? 0.25,
+          stiffness: 400,
+          damping: 30,
         }}
         style={{ borderRadius: 32 }}
         className="pointer-events-auto mx-auto w-fit min-w-[100px] overflow-hidden rounded-full bg-black text-white shadow-lg"
@@ -287,7 +289,9 @@ export default function DynamicIslandLetterPlayer() {
         <motion.div
           transition={{
             type: "spring",
-            bounce: BOUNCE_VARIANTS[variantKey] ?? 0.5,
+            bounce: BOUNCE_VARIANTS[variantKey] ?? 0.25,
+            stiffness: 400,
+            damping: 30,
           }}
           initial={{
             scale: 0.9,
@@ -303,7 +307,7 @@ export default function DynamicIslandLetterPlayer() {
             originX: 0.5,
             originY: 0.5,
             transition: {
-              delay: 0.05,
+              delay: 0.02,
             },
           }}
           key={view}
