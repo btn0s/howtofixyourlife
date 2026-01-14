@@ -2,7 +2,13 @@ import { config } from "dotenv";
 import { join } from "path";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 import { writeFileSync } from "fs";
-import { letterTextExpressive } from "../src/lib/letter-text-expressive";
+import { letterExpressive } from "../src/generated/letter";
+
+interface CharacterAlignment {
+  characters: string[];
+  characterStartTimesSeconds: number[];
+  characterEndTimesSeconds: number[];
+}
 
 config({ path: join(process.cwd(), ".env.local") });
 
@@ -45,23 +51,42 @@ function splitTextIntoChunks(text: string, maxLength: number): string[] {
 async function generateChunkAudio(
   elevenlabs: ElevenLabsClient,
   text: string
-): Promise<Buffer> {
-  const audio = await elevenlabs.textToSpeech.convert(VOICE_ID, {
-    text,
-    modelId: "eleven_v3",
-    outputFormat: "mp3_44100_128",
-  });
+): Promise<{
+  audio: Buffer;
+  alignment: CharacterAlignment | null;
+  duration: number;
+}> {
+  const response = await elevenlabs.textToSpeech.convertWithTimestamps(
+    VOICE_ID,
+    {
+      text,
+      modelId: "eleven_v3",
+      outputFormat: "mp3_44100_128",
+    }
+  );
 
-  const chunks: Uint8Array[] = [];
-  const reader = audio.getReader();
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
+  const audioBase64 = (response as any).audioBase64;
+  if (!audioBase64) {
+    throw new Error("Audio base64 data not found in response");
   }
 
-  return Buffer.concat(chunks);
+  const audioBuffer = Buffer.from(audioBase64, "base64");
+  const rawAlignment = (response as any).alignment;
+  const alignment: CharacterAlignment | null = rawAlignment 
+    ? (rawAlignment as CharacterAlignment)
+    : null;
+
+  let duration = 0;
+  if (alignment?.characterEndTimesSeconds?.length) {
+    const endTimes = alignment.characterEndTimesSeconds;
+    duration = endTimes[endTimes.length - 1] || 0;
+  }
+
+  return {
+    audio: audioBuffer,
+    alignment,
+    duration,
+  };
 }
 
 async function generateAudio() {
@@ -79,35 +104,78 @@ async function generateAudio() {
     apiKey: process.env.ELEVENLABS_API_KEY,
   });
 
-  const chunks = splitTextIntoChunks(letterTextExpressive, MAX_CHARS);
+  const chunks = splitTextIntoChunks(letterExpressive, MAX_CHARS);
   console.log(`Split text into ${chunks.length} chunks`);
-  console.log(`Total characters: ${letterTextExpressive.length}\n`);
+  console.log(`Total characters: ${letterExpressive.length}\n`);
 
-  // Show expressive tags found
-  const tags = letterTextExpressive.match(/\[[^\]]+\]/g) || [];
-  console.log(`Expressive tags found: ${tags.length}`);
-  console.log(`Tags: ${[...new Set(tags)].join(", ")}\n`);
+      const tags = letterExpressive.match(/\[[^\]]+\]/g) || [];
+      console.log(`Expressive tags found: ${tags.length}`);
+      console.log(`Tags: ${[...new Set(tags)].join(", ")}\n`);
 
   try {
     const audioBuffers: Buffer[] = [];
+    const mergedAlignment: CharacterAlignment = {
+      characters: [],
+      characterStartTimesSeconds: [],
+      characterEndTimesSeconds: [],
+    };
+    let cumulativeOffset = 0;
 
     for (let i = 0; i < chunks.length; i++) {
       const chunkTags = chunks[i].match(/\[[^\]]+\]/g) || [];
       console.log(
         `Generating chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars, ${chunkTags.length} tags)...`
       );
-      const buffer = await generateChunkAudio(elevenlabs, chunks[i]);
-      audioBuffers.push(buffer);
-      console.log(`  Done (${(buffer.length / 1024).toFixed(0)} KB)`);
+      const { audio, alignment, duration } = await generateChunkAudio(
+        elevenlabs,
+        chunks[i]
+      );
+      audioBuffers.push(audio);
+      console.log(
+        `  Done (${(audio.length / 1024).toFixed(0)} KB, ${duration.toFixed(2)}s)`
+      );
+
+      if (alignment) {
+        mergedAlignment.characters.push(...alignment.characters);
+        mergedAlignment.characterStartTimesSeconds.push(
+          ...alignment.characterStartTimesSeconds.map(
+            (t) => t + cumulativeOffset
+          )
+        );
+        mergedAlignment.characterEndTimesSeconds.push(
+          ...alignment.characterEndTimesSeconds.map(
+            (t) => t + cumulativeOffset
+          )
+        );
+      }
+
+      cumulativeOffset += duration;
     }
 
     console.log("\nCombining audio chunks...");
     const finalBuffer = Buffer.concat(audioBuffers);
-    const outputPath = join(process.cwd(), "public", "letter-audio.mp3");
+    const audioOutputPath = join(process.cwd(), "public", "letter-audio.mp3");
+    const alignmentOutputPath = join(
+      process.cwd(),
+      "public",
+      "letter-alignment.json"
+    );
 
-    writeFileSync(outputPath, finalBuffer);
-    console.log(`\nAudio saved to: ${outputPath}`);
+    writeFileSync(audioOutputPath, finalBuffer);
+    writeFileSync(
+      alignmentOutputPath,
+      JSON.stringify(mergedAlignment, null, 2)
+    );
+
+    console.log(`\nAudio saved to: ${audioOutputPath}`);
     console.log(`File size: ${(finalBuffer.length / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`\nAlignment saved to: ${alignmentOutputPath}`);
+    console.log(
+      `Total characters: ${mergedAlignment.characters.length}`
+    );
+    console.log(
+      `Total duration: ${cumulativeOffset.toFixed(2)}s`
+    );
   } catch (error) {
     console.error("Failed to generate audio:", error);
     process.exit(1);

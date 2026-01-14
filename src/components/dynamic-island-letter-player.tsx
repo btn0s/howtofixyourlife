@@ -9,6 +9,7 @@ import {
   SkipForward,
   X,
 } from "lucide-react";
+import { useTranscriptSync } from "./transcript-sync-provider";
 
 const BOUNCE_VARIANTS = {
   idle: 0.25,
@@ -54,42 +55,43 @@ export default function DynamicIslandLetterPlayer() {
   const [view, setView] = useState<"idle" | "player">("idle");
   const [variantKey, setVariantKey] =
     useState<keyof typeof BOUNCE_VARIANTS>("idle");
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { audioRef, isPlaying } = useTranscriptSync();
+  
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio("/letter-audio.mp3");
-      audioRef.current.preload = "auto";
+    if (isPlaying) {
+      setIsLoading(false);
     }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (!audioRef.current) return;
 
     const audio = audioRef.current;
 
+    const updateTime = () => {
+      if (isFinite(audio.currentTime)) {
+        setCurrentTime(audio.currentTime);
+      }
+    };
+
+    const updateDuration = () => {
+      if (isFinite(audio.duration) && audio.duration > 0) {
+        setDuration(audio.duration);
+      }
+    };
+
     const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
+      updateDuration();
     };
 
     const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-
-    const handlePlay = () => {
-      setIsPlaying(true);
-      setIsLoading(false);
-    };
-
-    const handlePause = () => {
-      setIsPlaying(false);
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
+      updateTime();
     };
 
     const handleWaiting = () => {
@@ -98,33 +100,40 @@ export default function DynamicIslandLetterPlayer() {
 
     const handleCanPlay = () => {
       setIsLoading(false);
+      updateDuration();
     };
 
-    const handleError = () => {
+    const handlePlay = () => {
       setIsLoading(false);
-      setIsPlaying(false);
     };
+
+    updateDuration();
+    if (isPlaying) {
+      updateTime();
+    }
 
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("timeupdate", handleTimeUpdate);
-    audio.addEventListener("play", handlePlay);
-    audio.addEventListener("pause", handlePause);
-    audio.addEventListener("ended", handleEnded);
     audio.addEventListener("waiting", handleWaiting);
     audio.addEventListener("canplay", handleCanPlay);
-    audio.addEventListener("error", handleError);
+    audio.addEventListener("play", handlePlay);
+
+    const interval = setInterval(() => {
+      updateDuration();
+      if (isPlaying) {
+        updateTime();
+      }
+    }, 250);
 
     return () => {
+      clearInterval(interval);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.removeEventListener("play", handlePlay);
-      audio.removeEventListener("pause", handlePause);
-      audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("waiting", handleWaiting);
       audio.removeEventListener("canplay", handleCanPlay);
-      audio.removeEventListener("error", handleError);
+      audio.removeEventListener("play", handlePlay);
     };
-  }, []);
+  }, [audioRef, isPlaying]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -138,6 +147,8 @@ export default function DynamicIslandLetterPlayer() {
     setIsLoading(true);
     if (audioRef.current) {
       audioRef.current.play().catch(() => {
+        setIsLoading(false);
+      }).then(() => {
         setIsLoading(false);
       });
     }
@@ -172,10 +183,49 @@ export default function DynamicIslandLetterPlayer() {
     audioRef.current.currentTime = newTime;
   };
 
-  const handleSeek = (value: number[]) => {
-    if (!audioRef.current) return;
-    audioRef.current.currentTime = value[0];
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current || !duration || isDragging) return;
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    const newTime = Math.max(0, Math.min(percent * duration, duration));
+    audioRef.current.currentTime = newTime;
   };
+
+  const handleHandleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!audioRef.current || !duration) return;
+      const scrubBar = document.querySelector('[data-scrub-bar]') as HTMLElement;
+      if (!scrubBar) return;
+      const rect = scrubBar.getBoundingClientRect();
+      const percent = Math.max(0, Math.min((e.clientX - rect.left) / rect.width, 1));
+      const newTime = percent * duration;
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, duration]);
 
   const idleContent = (
     <div className="flex items-center gap-2.5 px-5 py-2.5">
@@ -223,20 +273,23 @@ export default function DynamicIslandLetterPlayer() {
           {formatTime(currentTime)}
         </span>
         <div
-          className="relative w-32 h-1.5 bg-white/10 rounded-full overflow-hidden border border-white/10 shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.3)] cursor-pointer group"
-          onClick={(e) => {
-            if (!duration) return;
-            const rect = e.currentTarget.getBoundingClientRect();
-            const percent = (e.clientX - rect.left) / rect.width;
-            const newTime = Math.max(0, Math.min(percent * duration, duration));
-            if (audioRef.current) {
-              audioRef.current.currentTime = newTime;
-            }
-          }}
+          data-scrub-bar
+          className="relative w-32 h-1.5 bg-white/10 rounded-full overflow-visible border border-white/10 shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.3)] cursor-pointer group"
+          onClick={handleSeek}
         >
           <div
             className="absolute top-0 left-0 h-full bg-white rounded-full shadow-[0_0_4px_0_rgba(255,255,255,0.5)] transition-all group-hover:shadow-[0_0_6px_0_rgba(255,255,255,0.7)]"
             style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+          />
+          <div
+            className="absolute w-3 h-3 bg-white rounded-full shadow-[0_0_4px_0_rgba(255,255,255,0.5)] transition-all group-hover:w-4 group-hover:h-4 group-hover:shadow-[0_0_6px_0_rgba(255,255,255,0.7)] cursor-grab active:cursor-grabbing z-10"
+            style={{ 
+              left: `calc(${duration ? (currentTime / duration) * 100 : 0}% - 6px)`,
+              top: '50%',
+              transform: 'translateY(-50%)'
+            }}
+            onMouseDown={handleHandleMouseDown}
+            onClick={(e) => e.stopPropagation()}
           />
         </div>
         <span className="text-xs text-white/90 shrink-0 font-mono w-10 font-medium">

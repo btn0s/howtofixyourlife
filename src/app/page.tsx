@@ -1,7 +1,7 @@
 "use client";
 
-import Content from "./content.mdx";
+import { LetterTranscript } from "@/components/letter-transcript";
 
 export default function Page() {
-  return <Content />;
+  return <LetterTranscript />;
 }

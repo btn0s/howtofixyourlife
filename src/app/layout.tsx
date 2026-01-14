@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { PaperWrapper } from "@/components/paper-wrapper";
 import DynamicIslandLetterPlayer from "@/components/dynamic-island-letter-player";
+import { TranscriptSyncProvider } from "@/components/transcript-sync-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,14 +38,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${abcMarist.variable} antialiased bg-[#e8e6e1] text-zinc-900 selection:bg-zinc-200 dark:bg-zinc-950 dark:text-zinc-100 dark:selection:bg-zinc-800`}
       >
-        <div className="min-h-screen py-16 sm:py-20 px-4 sm:px-8 max-w-3xl mx-auto">
-          <PaperWrapper className="shadow-xl">
-            <article className="prose prose-neutral max-w-none prose-lg">
-              {children}
-            </article>
-          </PaperWrapper>
-        </div>
-        <DynamicIslandLetterPlayer />
+        <TranscriptSyncProvider>
+          <div className="min-h-screen py-16 sm:py-20 px-4 sm:px-8 max-w-3xl mx-auto">
+            <PaperWrapper className="shadow-xl">
+              <article className="prose prose-neutral max-w-none prose-lg">
+                {children}
+              </article>
+            </PaperWrapper>
+          </div>
+          <DynamicIslandLetterPlayer />
+        </TranscriptSyncProvider>
       </body>
     </html>
   );
